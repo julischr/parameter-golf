@@ -13,10 +13,11 @@ To maximize the number of parameters N within the constrained byte limit, the st
 * **8-bit Embeddings:** Token embeddings are quantized using a min-max `int8` approach.
 * **Artifact Packing:** Ternary states compress highly efficiently (~0.2 bytes per parameter) using Brotli/LZMA, allowing the model depth and width to be scaled significantly beyond traditional 16-bit limits within the 16 MB boundary.
 
-### 2. Forward/Backward Pass Adjustments
-* **Straight-Through Estimator (STE):** Implemented via `(w_quant * w_scale) + w_float - w_float.detach()` to allow gradient flow through the non-differentiable rounding operations.
-* **Per-Token / Absmean Scaling:** To mitigate precision loss from ternary rounding, weights are dynamically scaled using absolute mean scaling, and activations are scaled per-token to handle outliers.
-* **RMSNorm:** Used exclusively across the network to maintain stable variance distributions, which is critical for highly quantized networks.
+### 2. Quantization-Aware Training (QAT)
+The model does not rely on post-training compression; it natively trains in the quantized space from step zero.
+* **Straight-Through Estimator (STE):** Implemented via `(w_quant * w_scale) + w_float - w_float.detach()`. This mathematically allows the gradient to bypass the non-differentiable rounding functions during the backward pass, successfully updating the underlying latent float weights.
+* **Per-Token / Absmean Scaling:** To mitigate precision loss from ternary rounding, weights are dynamically scaled using absolute mean scaling, and activations are scaled per-token to handle mathematical outliers.
+* **RMSNorm:** Used exclusively across the network to maintain stable variance distributions, which is critical for preventing gradient vanishing in highly quantized networks.
 
 ### 3. Optimizer Engineering (Ternary-Specific AdamW)
 Training 1.58-bit models requires a departure from standard continuous-weight optimization. The model utilizes a highly customized **AdamW** setup tailored for discrete latent clusters:
