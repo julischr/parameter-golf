@@ -2,7 +2,7 @@
 
 This repository contains a highly optimized, parameter-constrained language model submitted for the **OpenAI Model Craft Challenge: Parameter Golf**. The challenge requires training a model that minimizes validation loss (Bits Per Byte / BPB) on the FineWeb dataset, with a strict limitation: the final artifact (code + compressed weights) must strictly fit within a **16.0 MB** limit and train in under 10 minutes on an 8xH100 setup.
 
-Building upon existing baseline submissions (which utilized 16-bit precision and the Muon optimizer), this implementation introduces a **1.58-bit (Ternary) quantization architecture**. This extreme compression paradigm allows scaling the parameter count to massive dimensions (~60M+ parameters) while remaining under the 16.0 MB file size limit.
+This implementation introduces a **1.58-bit (Ternary) quantization architecture**. This extreme compression paradigm allows scaling the parameter count to massive dimensions (~60M+ parameters) while remaining under the 16.0 MB file size limit, optimizing the $L(N)$ trade-off far beyond what is possible with standard 16-bit precision.
 
 ## Technical Approach & Architecture
 
