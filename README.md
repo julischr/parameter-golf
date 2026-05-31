@@ -11,12 +11,13 @@ To maximize the number of parameters N within the constrained byte limit, the st
 ### 1. Extreme Quantization & Compression
 * **Ternary Matrices:** The weights in the Attention (`c_q`, `c_k`, `c_v`, `proj`) and MLP (`fc`, `proj`) layers are constrained to `{-1, 0, 1}`.
 * **8-bit Embeddings:** Token embeddings are quantized using a min-max `int8` approach.
-* **Artifact Packing:** Ternary states compress highly efficiently (~0.2 bytes per parameter) using Brotli/LZMA, allowing the model depth and width to be scaled significantly beyond traditional 16-bit limits within the 16 MB boundary.
+* **Entropy-Optimized Packing (Byte-Shuffling):** Before applying Brotli/LZMA compression, the raw quantized bytes are pre-processed using a custom stride-based byte-shuffling algorithm. This aligns identical discrete states in memory, artificially lowering the Shannon entropy and allowing the compressor to pack significantly more parameters into the strict 16.0 MB boundary.
 
-### 2. Quantization-Aware Training (QAT)
+### 2. Quantization-Aware Training (QAT) & Structural Stability
 The model does not rely on post-training compression; it natively trains in the quantized space from step zero.
 * **Straight-Through Estimator (STE):** Implemented via `(w_quant * w_scale) + w_float - w_float.detach()`. This mathematically allows the gradient to bypass the non-differentiable rounding functions during the backward pass, successfully updating the underlying latent float weights.
 * **Per-Token / Absmean Scaling:** To mitigate precision loss from ternary rounding, weights are dynamically scaled using absolute mean scaling, and activations are scaled per-token to handle mathematical outliers.
+* **Parallel Residual Streams:** Standard sequential Transformer blocks compound quantization errors as the signal passes through mathematically lossy Attention and MLP layers in series. This model utilizes **Parallel Residuals** (Attention and MLP compute concurrently from the same input and add to the stream simultaneously), acting as a gradient highway that prevents signal degradation in the 1.58-bit forward/backward pass.
 * **RMSNorm:** Used exclusively across the network to maintain stable variance distributions, which is critical for preventing gradient vanishing in highly quantized networks.
 
 ### 3. Optimizer Engineering (Ternary-Specific AdamW)
